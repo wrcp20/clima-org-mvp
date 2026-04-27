@@ -2,6 +2,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from database import create_db_and_tables
 from routers.admin import router as admin_router
@@ -35,6 +37,13 @@ app.include_router(admin_router, prefix="/admin", tags=["admin"])
 app.include_router(surveys_router, tags=["surveys"])
 app.include_router(scores_router, prefix="/admin", tags=["scores"])
 app.include_router(responses_router, prefix="/admin", tags=["responses"])
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+@app.get("/", include_in_schema=False)
+def root():
+    return FileResponse("static/admin.html")
 
 
 @app.get("/health", tags=["health"])

@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clima Organizacional — Admin</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f0f4f8; --surface: #fff; --primary: #3b82f6; --primary-dark: #2563eb;
+    --danger: #ef4444; --success: #22c55e; --warning: #f59e0b;
+    --text: #1e293b; --muted: #64748b; --border: #e2e8f0;
+    --radius: 10px; --shadow: 0 2px 8px rgba(0,0,0,.08);
+  }
+
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* NAV */
+  nav { background: var(--primary); color: #fff; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 56px; }
+  nav .brand { font-size: 1.1rem; font-weight: 700; letter-spacing: .3px; }
+  nav .nav-links { display: flex; gap: 4px; }
+  nav .nav-links button { background: transparent; border: none; color: rgba(255,255,255,.8); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: .9rem; transition: background .15s; }
+  nav .nav-links button:hover, nav .nav-links button.active { background: rgba(255,255,255,.2); color: #fff; }
+  nav .api-key-badge { font-size: .8rem; background: rgba(255,255,255,.15); padding: 4px 10px; border-radius: 20px; }
+
+  /* LAYOUT */
+  main { max-width: 1100px; margin: 32px auto; padding: 0 16px; }
+  .page { display: none; } .page.active { display: block; }
+
+  /* CARDS */
+  .card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; margin-bottom: 20px; }
+  .card h2 { font-size: 1.1rem; margin-bottom: 16px; color: var(--text); }
+
+  /* GRID */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media(max-width: 640px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+  /* KPI */
+  .kpi { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; text-align: center; }
+  .kpi .value { font-size: 2rem; font-weight: 700; color: var(--primary); }
+  .kpi .label { font-size: .85rem; color: var(--muted); margin-top: 4px; }
+
+  /* FORM */
+  .form-group { margin-bottom: 14px; }
+  label { display: block; font-size: .85rem; font-weight: 600; margin-bottom: 5px; color: var(--muted); }
+  input, select { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 7px; font-size: .95rem; outline: none; transition: border .15s; }
+  input:focus, select:focus { border-color: var(--primary); }
+
+  /* BUTTONS */
+  .btn { padding: 9px 18px; border: none; border-radius: 7px; font-size: .9rem; font-weight: 600; cursor: pointer; transition: opacity .15s, transform .1s; }
+  .btn:hover { opacity: .9; }
+  .btn:active { transform: scale(.98); }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-warning { background: var(--warning); color: #fff; }
+  .btn-sm { padding: 5px 11px; font-size: .82rem; }
+  .btn-outline { background: transparent; border: 1.5px solid var(--primary); color: var(--primary); }
+
+  /* TABLE */
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th { text-align: left; padding: 10px 12px; background: var(--bg); font-size: .8rem; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f8fafc; }
+
+  /* BADGES */
+  .badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: .78rem; font-weight: 600; }
+  .badge-draft { background: #f1f5f9; color: var(--muted); }
+  .badge-active { background: #dcfce7; color: #16a34a; }
+  .badge-closed { background: #fee2e2; color: #dc2626; }
+  .badge-high { background: #fee2e2; color: #dc2626; }
+  .badge-medium { background: #fef9c3; color: #ca8a04; }
+  .badge-low { background: #dcfce7; color: #16a34a; }
+
+  /* ALERTS */
+  .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 12px; font-size: .9rem; }
+  .alert-danger { background: #fee2e2; color: #991b1b; border-left: 4px solid var(--danger); }
+  .alert-success { background: #dcfce7; color: #166534; border-left: 4px solid var(--success); }
+  .alert-warning { background: #fffbeb; color: #92400e; border-left: 4px solid var(--warning); }
+  .alert-info { background: #eff6ff; color: #1e40af; border-left: 4px solid var(--primary); }
+
+  /* TOKENS BOX */
+  .tokens-box { background: #1e293b; color: #a3e635; padding: 16px; border-radius: 8px; font-family: monospace; font-size: .85rem; max-height: 220px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 100; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border-radius: var(--radius); padding: 28px; width: 100%; max-width: 460px; box-shadow: 0 20px 40px rgba(0,0,0,.2); }
+  .modal h3 { margin-bottom: 18px; font-size: 1.1rem; }
+  .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+  /* LOGIN */
+  .login-wrap { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--bg); }
+  .login-card { background: var(--surface); border-radius: 14px; box-shadow: 0 8px 30px rgba(0,0,0,.1); padding: 40px; width: 100%; max-width: 380px; text-align: center; }
+  .login-card h1 { font-size: 1.4rem; margin-bottom: 6px; }
+  .login-card p { color: var(--muted); font-size: .9rem; margin-bottom: 24px; }
+
+  /* MISC */
+  .separator { height: 1px; background: var(--border); margin: 20px 0; }
+  .text-muted { color: var(--muted); font-size: .85rem; }
+  .flex { display: flex; align-items: center; gap: 10px; }
+  .flex-between { display: flex; align-items: center; justify-content: space-between; }
+  .mt-8 { margin-top: 8px; }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin .6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .empty-state { text-align: center; padding: 48px; color: var(--muted); }
+  .empty-state .icon { font-size: 2.5rem; margin-bottom: 10px; }
+  #toast { position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: #fff; padding: 12px 20px; border-radius: 8px; font-size: .9rem; display: none; z-index: 999; max-width: 300px; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-wrap" id="login-screen">
+  <div class="login-card">
+    <div style="font-size:2.5rem;margin-bottom:12px">🏢</div>
+    <h1>Clima Organizacional</h1>
+    <p>Ingresá tu API Key de administrador para continuar</p>
+    <div class="form-group">
+      <input type="password" id="login-key" placeholder="API Key" style="text-align:center">
+    </div>
+    <button class="btn btn-primary" style="width:100%" onclick="doLogin()">Ingresar</button>
+    <div id="login-error" class="alert alert-danger mt-8" style="display:none"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen" style="display:none">
+  <nav>
+    <span class="brand">🏢 Clima Organizacional</span>
+    <div class="nav-links">
+      <button onclick="showPage('dashboard')" id="nav-dashboard">Dashboard</button>
+      <button onclick="showPage('campaigns')" id="nav-campaigns">Campañas</button>
+      <button onclick="showPage('tokens')" id="nav-tokens">Tokens</button>
+      <button onclick="showPage('alerts')" id="nav-alerts">Alertas <span id="alert-badge" style="display:none;background:#ef4444;border-radius:20px;padding:1px 7px;font-size:.75rem;margin-left:4px">0</span></button>
+      <button onclick="doLogout()" style="opacity:.7">Salir</button>
+    </div>
+    <span class="api-key-badge" id="key-badge"></span>
+  </nav>
+
+  <main>
+    <!-- DASHBOARD -->
+    <div class="page" id="page-dashboard">
+      <div class="flex-between" style="margin-bottom:20px">
+        <h1 style="font-size:1.3rem">Dashboard</h1>
+        <select id="dash-survey-select" onchange="loadDashboard()" style="width:260px"></select>
+      </div>
+      <div class="grid-3" id="kpi-row">
+        <div class="kpi"><div class="value" id="kpi-responses">—</div><div class="label">Respuestas recibidas</div></div>
+        <div class="kpi"><div class="value" id="kpi-climate">—</div><div class="label">Clima promedio</div></div>
+        <div class="kpi"><div class="value" id="kpi-highrisk">—</div><div class="label">Departamentos en riesgo alto</div></div>
+      </div>
+      <div class="card" style="margin-top:20px">
+        <h2>Resultados por departamento</h2>
+        <div id="dept-table-wrap"></div>
+      </div>
+    </div>
+
+    <!-- CAMPAIGNS -->
+    <div class="page" id="page-campaigns">
+      <div class="flex-between" style="margin-bottom:20px">
+        <h1 style="font-size:1.3rem">Campañas</h1>
+        <button class="btn btn-primary" onclick="openCreateModal()">+ Nueva campaña</button>
+      </div>
+      <div class="card">
+        <div id="campaigns-table-wrap"></div>
+      </div>
+    </div>
+
+    <!-- TOKENS -->
+    <div class="page" id="page-tokens">
+      <h1 style="font-size:1.3rem;margin-bottom:20px">Generar tokens para empleados</h1>
+      <div class="grid-2">
+        <div class="card">
+          <h2>Configurar lote de tokens</h2>
+          <div class="form-group">
+            <label>Campaña (debe estar activa)</label>
+            <select id="token-survey-select"></select>
+          </div>
+          <div class="form-group">
+            <label>Departamento</label>
+            <input type="text" id="token-dept" placeholder="Ej: Engineering, Ventas...">
+          </div>
+          <div class="form-group">
+            <label>Cantidad de tokens</label>
+            <input type="number" id="token-count" value="10" min="1" max="500">
+          </div>
+          <button class="btn btn-primary" onclick="generateTokens()">Generar tokens</button>
+        </div>
+        <div class="card">
+          <h2>Tokens generados</h2>
+          <p class="text-muted" id="tokens-info">Los tokens aparecerán aquí. Copiá los links y distribuílos a los empleados.</p>
+          <div id="tokens-output" style="display:none">
+            <div class="tokens-box" id="tokens-list"></div>
+            <div class="flex mt-8" style="gap:8px">
+              <button class="btn btn-outline btn-sm" onclick="copyTokens()">Copiar todos</button>
+              <button class="btn btn-outline btn-sm" onclick="downloadTokens()">Descargar .txt</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALERTS -->
+    <div class="page" id="page-alerts">
+      <h1 style="font-size:1.3rem;margin-bottom:20px">Alertas de riesgo</h1>
+      <div class="card">
+        <div class="flex-between" style="margin-bottom:16px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600">
+            <input type="checkbox" id="show-seen-alerts" onchange="loadAlerts()"> Mostrar vistas
+          </label>
+          <button class="btn btn-outline btn-sm" onclick="loadAlerts()">Actualizar</button>
+        </div>
+        <div id="alerts-wrap"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- MODAL: crear campaña -->
+<div class="modal-overlay" id="create-modal">
+  <div class="modal">
+    <h3>Nueva campaña</h3>
+    <div class="form-group">
+      <label>Título</label>
+      <input type="text" id="new-survey-title" placeholder="Ej: Q2 2026 — Bienestar laboral">
+    </div>
+    <div class="form-group">
+      <label>Fecha de campaña</label>
+      <input type="date" id="new-survey-date">
+    </div>
+    <div id="create-error" class="alert alert-danger" style="display:none"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeCreateModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="createCampaign()">Crear campaña</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const BASE = window.location.origin;
+let API_KEY = '';
+let currentTokenSurveyId = '';
+let lastTokens = [];
+let lastTokenSurveyId = '';
+
+// ─── AUTH ───────────────────────────────────────────────────────────────
+function doLogin() {
+  const key = document.getElementById('login-key').value.trim();
+  if (!key) return;
+  API_KEY = key;
+  api('GET', '/admin/surveys')
+    .then(() => {
+      localStorage.setItem('clima_api_key', key);
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app-screen').style.display = 'block';
+      document.getElementById('key-badge').textContent = key.slice(0,4) + '••••';
+      initApp();
+    })
+    .catch(() => {
+      document.getElementById('login-error').textContent = 'API Key incorrecta.';
+      document.getElementById('login-error').style.display = 'block';
+    });
+}
+
+function doLogout() {
+  localStorage.removeItem('clima_api_key');
+  API_KEY = '';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app-screen').style.display = 'none';
+  document.getElementById('login-key').value = '';
+}
+
+document.getElementById('login-key').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+// ─── API HELPER ──────────────────────────────────────────────────────────
+function api(method, path, body = null) {
+  return fetch(BASE + path, {
+    method,
+    headers: { 'X-Admin-Key': API_KEY, 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : null,
+  }).then(r => {
+    if (!r.ok) return r.json().then(e => Promise.reject(e));
+    return r.json();
+  });
+}
+
+function apiRaw(path) {
+  return fetch(BASE + path, { headers: { 'X-Admin-Key': API_KEY } });
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────
+function initApp() {
+  const saved = localStorage.getItem('clima_api_key');
+  if (saved && !API_KEY) {
+    API_KEY = saved;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'block';
+    document.getElementById('key-badge').textContent = saved.slice(0,4) + '••••';
+  }
+  showPage('dashboard');
+  loadAlertBadge();
+}
+
+// ─── NAV ─────────────────────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-links button').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  if (name === 'dashboard') loadDashboardSelects().then(loadDashboard);
+  if (name === 'campaigns') loadCampaigns();
+  if (name === 'tokens') loadTokenSelects();
+  if (name === 'alerts') loadAlerts();
+}
+
+// ─── DASHBOARD ───────────────────────────────────────────────────────────
+async function loadDashboardSelects() {
+  const surveys = await api('GET', '/admin/surveys');
+  const sel = document.getElementById('dash-survey-select');
+  sel.innerHTML = surveys.length
+    ? surveys.map(s => `<option value="${s.id}">${s.title} (${s.status})</option>`).join('')
+    : '<option value="">Sin campañas</option>';
+}
+
+async function loadDashboard() {
+  const surveyId = document.getElementById('dash-survey-select').value;
+  if (!surveyId) return;
+
+  const [depts, summary] = await Promise.all([
+    api('GET', `/admin/scores/by-department?survey_id=${surveyId}`),
+    api('GET', `/admin/responses/summary?survey_id=${surveyId}`),
+  ]);
+
+  const totalResp = summary.reduce((a, b) => a + b.response_count, 0);
+  const avgClimate = depts.length ? (depts.reduce((a,b) => a + b.avg_climate, 0) / depts.length).toFixed(1) : '—';
+  const highRisk = depts.filter(d => d.dominant_risk === 'high').length;
+
+  document.getElementById('kpi-responses').textContent = totalResp;
+  document.getElementById('kpi-climate').textContent = avgClimate ? avgClimate + '/100' : '—';
+  document.getElementById('kpi-highrisk').textContent = highRisk;
+
+  const wrap = document.getElementById('dept-table-wrap');
+  if (!depts.length) {
+    wrap.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>Sin respuestas aún para esta campaña</p></div>`;
+    return;
+  }
+
+  wrap.innerHTML = `<table>
+    <thead><tr>
+      <th>Departamento</th><th>Respuestas</th>
+      <th>Agotamiento</th><th>Despersonaliz.</th><th>Realización</th><th>Clima</th>
+      <th>Riesgo</th>
+    </tr></thead>
+    <tbody>${depts.map(d => `<tr>
+      <td><b>${d.department}</b></td>
+      <td>${d.count}</td>
+      <td>${bar(d.avg_exhaustion, 30)}</td>
+      <td>${bar(d.avg_depersonalization, 12)}</td>
+      <td>${bar(d.avg_achievement, 12)}</td>
+      <td>${bar(d.avg_climate, 100, true)}</td>
+      <td><span class="badge badge-${d.dominant_risk}">${d.dominant_risk}</span></td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+function bar(value, max, invert = false) {
+  const pct = Math.round((value / max) * 100);
+  const color = invert
+    ? (pct >= 60 ? '#22c55e' : pct >= 30 ? '#f59e0b' : '#ef4444')
+    : (pct >= 70 ? '#ef4444' : pct >= 40 ? '#f59e0b' : '#22c55e');
+  return `<div style="display:flex;align-items:center;gap:8px">
+    <div style="flex:1;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden">
+      <div style="width:${pct}%;height:100%;background:${color};border-radius:4px"></div>
+    </div>
+    <span style="font-size:.8rem;color:#64748b;width:32px">${value.toFixed(1)}</span>
+  </div>`;
+}
+
+// ─── CAMPAIGNS ───────────────────────────────────────────────────────────
+async function loadCampaigns() {
+  const surveys = await api('GET', '/admin/surveys');
+  const wrap = document.getElementById('campaigns-table-wrap');
+  if (!surveys.length) {
+    wrap.innerHTML = `<div class="empty-state"><div class="icon">📋</div><p>No hay campañas. Creá la primera.</p></div>`;
+    return;
+  }
+  wrap.innerHTML = `<table>
+    <thead><tr><th>Título</th><th>Fecha</th><th>Estado</th><th>Acciones</th></tr></thead>
+    <tbody>${surveys.map(s => `<tr>
+      <td><b>${s.title}</b></td>
+      <td>${s.campaign_date}</td>
+      <td><span class="badge badge-${s.status}">${s.status}</span></td>
+      <td style="display:flex;gap:6px;flex-wrap:wrap">
+        ${s.status === 'draft' ? `<button class="btn btn-success btn-sm" onclick="changeStatus('${s.id}','active')">Activar</button>` : ''}
+        ${s.status === 'active' ? `<button class="btn btn-warning btn-sm" onclick="changeStatus('${s.id}','closed')">Cerrar</button>
+          <button class="btn btn-primary btn-sm" onclick="goTokens('${s.id}')">Tokens</button>` : ''}
+        ${s.status !== 'draft' ? `<button class="btn btn-outline btn-sm" onclick="exportCsv('${s.id}','${s.title}')">Exportar CSV</button>` : ''}
+      </td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+function openCreateModal() {
+  document.getElementById('new-survey-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('create-modal').classList.add('open');
+  document.getElementById('new-survey-title').focus();
+}
+function closeCreateModal() { document.getElementById('create-modal').classList.remove('open'); }
+
+async function createCampaign() {
+  const title = document.getElementById('new-survey-title').value.trim();
+  const date = document.getElementById('new-survey-date').value;
+  if (!title || !date) { document.getElementById('create-error').textContent = 'Completá todos los campos.'; document.getElementById('create-error').style.display = 'block'; return; }
+  try {
+    await api('POST', '/admin/surveys', { title, campaign_date: date });
+    closeCreateModal();
+    toast('Campaña creada ✓');
+    loadCampaigns();
+    loadTokenSelects();
+  } catch(e) {
+    document.getElementById('create-error').textContent = e.detail || 'Error al crear.';
+    document.getElementById('create-error').style.display = 'block';
+  }
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCreateModal(); });
+
+async function changeStatus(id, status) {
+  await api('PATCH', `/admin/surveys/${id}/status`, { status });
+  toast(`Campaña ${status === 'active' ? 'activada' : 'cerrada'} ✓`);
+  loadCampaigns();
+}
+
+function goTokens(surveyId) {
+  showPage('tokens');
+  document.getElementById('token-survey-select').value = surveyId;
+}
+
+async function exportCsv(surveyId, title) {
+  const resp = await apiRaw(`/admin/scores/export?survey_id=${surveyId}`);
+  const blob = await resp.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `scores_${title.replace(/ /g,'_')}.csv`; a.click();
+  URL.revokeObjectURL(url);
+  toast('CSV descargado ✓');
+}
+
+// ─── TOKENS ──────────────────────────────────────────────────────────────
+async function loadTokenSelects() {
+  const surveys = await api('GET', '/admin/surveys');
+  const active = surveys.filter(s => s.status === 'active');
+  const sel = document.getElementById('token-survey-select');
+  sel.innerHTML = active.length
+    ? active.map(s => `<option value="${s.id}">${s.title}</option>`).join('')
+    : '<option value="">No hay campañas activas</option>';
+}
+
+async function generateTokens() {
+  const surveyId = document.getElementById('token-survey-select').value;
+  const dept = document.getElementById('token-dept').value.trim();
+  const count = parseInt(document.getElementById('token-count').value);
+  if (!surveyId || !dept || !count) { toast('Completá todos los campos', 'warn'); return; }
+
+  const data = await api('POST', `/admin/surveys/${surveyId}/tokens`, { department: dept, count });
+  lastTokens = data.tokens;
+  lastTokenSurveyId = surveyId;
+
+  const links = data.tokens.map(t => `${BASE}/surveys/${surveyId}?token=${t}`).join('\n');
+  document.getElementById('tokens-list').textContent = links;
+  document.getElementById('tokens-output').style.display = 'block';
+  document.getElementById('tokens-info').textContent = `${data.count} links generados para ${data.department}. Distribuílos a los empleados.`;
+  toast(`${data.count} tokens generados ✓`);
+}
+
+function copyTokens() {
+  const text = document.getElementById('tokens-list').textContent;
+  navigator.clipboard.writeText(text).then(() => toast('Links copiados ✓'));
+}
+
+function downloadTokens() {
+  const text = document.getElementById('tokens-list').textContent;
+  const dept = document.getElementById('token-dept').value.replace(/ /g,'_');
+  const blob = new Blob([text], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `tokens_${dept}.txt`; a.click();
+  URL.revokeObjectURL(url);
+  toast('Archivo descargado ✓');
+}
+
+// ─── ALERTS ──────────────────────────────────────────────────────────────
+const scoreLabels = { exhaustion:'Agotamiento', depersonalization:'Despersonalización', achievement:'Realización Personal', climate:'Clima Organizacional', overall:'Riesgo Global' };
+
+async function loadAlerts() {
+  const showSeen = document.getElementById('show-seen-alerts').checked;
+  const params = showSeen ? '' : '?seen=false';
+  const alerts = await api('GET', '/admin/alerts' + params);
+  const wrap = document.getElementById('alerts-wrap');
+  if (!alerts.length) {
+    wrap.innerHTML = `<div class="empty-state"><div class="icon">✅</div><p>No hay alertas activas. ¡Todo en orden!</p></div>`;
+    return;
+  }
+  wrap.innerHTML = alerts.map(a => {
+    const label = scoreLabels[a.score_type] || a.score_type;
+    const msg = a.score_type === 'climate'
+      ? `${a.department} — ${label}: ${a.value.toFixed(1)} (mínimo esperado: ${a.threshold})`
+      : `${a.department} — ${label}: ${a.value.toFixed(1)} (umbral: ${a.threshold})`;
+    const cls = a.seen ? 'alert-info' : (a.value >= a.threshold * 1.3 ? 'alert-danger' : 'alert-warning');
+    return `<div class="alert ${cls}" style="display:flex;justify-content:space-between;align-items:center">
+      <span>${a.seen ? '✓ ' : '⚠️ '}${msg}</span>
+      ${!a.seen ? `<button class="btn btn-outline btn-sm" onclick="markSeen('${a.id}')">Marcar vista</button>` : ''}
+    </div>`;
+  }).join('');
+  loadAlertBadge();
+}
+
+async function markSeen(alertId) {
+  await api('PATCH', `/admin/alerts/${alertId}/seen`);
+  loadAlerts();
+}
+
+async function loadAlertBadge() {
+  try {
+    const alerts = await api('GET', '/admin/alerts?seen=false');
+    const badge = document.getElementById('alert-badge');
+    if (alerts.length > 0) { badge.textContent = alerts.length; badge.style.display = 'inline'; }
+    else { badge.style.display = 'none'; }
+  } catch {}
+}
+
+// ─── TOAST ───────────────────────────────────────────────────────────────
+function toast(msg, type = 'ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.background = type === 'warn' ? '#92400e' : '#1e293b';
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 2800);
+}
+
+// ─── BOOT ────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('clima_api_key');
+  if (saved) {
+    API_KEY = saved;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'block';
+    document.getElementById('key-badge').textContent = saved.slice(0,4) + '••••';
+    showPage('dashboard');
+    loadAlertBadge();
+  }
+});
+</script>
+</body>
+</html>
