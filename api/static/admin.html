@@ -177,8 +177,11 @@
         <div class="card">
           <h2>Configurar lote de tokens</h2>
           <div class="form-group">
-            <label>Campaña (debe estar activa)</label>
+            <label>Campaña</label>
             <select id="token-survey-select"></select>
+            <div id="tokens-hint" class="alert alert-warning mt-8" style="display:none;font-size:.82rem">
+              No hay campañas activas. Andá a <b>Campañas</b> y activá una antes de generar tokens.
+            </div>
           </div>
           <div class="form-group">
             <label>Departamento</label>
@@ -453,11 +456,17 @@ async function exportCsv(surveyId, title) {
 // ─── TOKENS ──────────────────────────────────────────────────────────────
 async function loadTokenSelects() {
   const surveys = await api('GET', '/admin/surveys');
-  const active = surveys.filter(s => s.status === 'active');
   const sel = document.getElementById('token-survey-select');
-  sel.innerHTML = active.length
-    ? active.map(s => `<option value="${s.id}">${s.title}</option>`).join('')
-    : '<option value="">No hay campañas activas</option>';
+  if (!surveys.length) {
+    sel.innerHTML = '<option value="">Sin campañas — creá una primero</option>';
+    return;
+  }
+  sel.innerHTML = surveys.map(s => {
+    const label = s.status === 'active' ? s.title : `${s.title} (${s.status === 'draft' ? 'activar primero' : 'cerrada'})`;
+    return `<option value="${s.id}" ${s.status !== 'active' ? 'disabled' : ''}>${label}</option>`;
+  }).join('');
+  const hasActive = surveys.some(s => s.status === 'active');
+  document.getElementById('tokens-hint').style.display = hasActive ? 'none' : 'block';
 }
 
 async function generateTokens() {

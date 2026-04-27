@@ -53,14 +53,14 @@ class SurveySubmitRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_answers(self):
-        required = {f"q{i}" for i in range(1, 16)}
+        required = {f"q{i}" for i in range(1, 29)}
         missing = required - self.answers.keys()
         if missing:
             raise ValueError(f"Missing answer keys: {sorted(missing)}")
-        for q in [f"q{i}" for i in range(1, 10)]:
+        for q in [f"q{i}" for i in range(1, 23)]:   # q1-q22 MBI: 0-6
             if not 0 <= self.answers[q] <= 6:
                 raise ValueError(f"{q} must be between 0 and 6")
-        for q in [f"q{i}" for i in range(10, 16)]:
+        for q in [f"q{i}" for i in range(23, 29)]:  # q23-q28 climate: 1-5
             if not 1 <= self.answers[q] <= 5:
                 raise ValueError(f"{q} must be between 1 and 5")
         return self
