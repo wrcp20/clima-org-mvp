@@ -33,13 +33,9 @@ def get_survey_form(
 
     from constants import SURVEY_QUESTIONS
     return templates.TemplateResponse(
-        "survey_form.html",
-        {
-            "request": request,
-            "survey": survey,
-            "questions": SURVEY_QUESTIONS,
-            "token": token,
-        },
+        request=request,
+        name="survey_form.html",
+        context={"survey": survey, "questions": SURVEY_QUESTIONS, "token": token},
     )
 
 
