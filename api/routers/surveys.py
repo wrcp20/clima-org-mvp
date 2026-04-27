@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -16,7 +18,7 @@ templates = Jinja2Templates(directory="templates")
 
 @router.get("/surveys/{survey_id}", response_class=HTMLResponse)
 def get_survey_form(
-    survey_id: str,
+    survey_id: UUID,
     token: str,
     request: Request,
     session: Session = Depends(get_session),
@@ -43,7 +45,7 @@ def get_survey_form(
 
 @router.post("/surveys/{survey_id}/respond", response_model=ScoreRead)
 def submit_survey(
-    survey_id: str,
+    survey_id: UUID,
     token: str,
     payload: SurveySubmitRequest,
     session: Session = Depends(get_session),

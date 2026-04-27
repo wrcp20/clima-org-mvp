@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlmodel import Session, select
 
@@ -43,7 +45,7 @@ def list_surveys(
 
 @router.patch("/surveys/{survey_id}/status", response_model=SurveyRead)
 def update_survey_status(
-    survey_id: str,
+    survey_id: UUID,
     payload: SurveyStatusUpdate,
     session: Session = Depends(get_session),
     _: str = Depends(verify_admin_key),
@@ -60,7 +62,7 @@ def update_survey_status(
 
 @router.post("/surveys/{survey_id}/tokens", response_model=TokenGenerateResponse)
 def generate_survey_tokens(
-    survey_id: str,
+    survey_id: UUID,
     payload: TokenGenerateRequest,
     session: Session = Depends(get_session),
     _: str = Depends(verify_admin_key),
@@ -100,7 +102,7 @@ def list_alerts(
 
 @router.patch("/alerts/{alert_id}/seen", response_model=AlertRead)
 def mark_alert_seen(
-    alert_id: str,
+    alert_id: UUID,
     session: Session = Depends(get_session),
     _: str = Depends(verify_admin_key),
 ):
