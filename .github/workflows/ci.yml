@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches-ignore:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Tests & Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r api/requirements.txt
+
+      - name: Lint (ruff)
+        run: |
+          pip install ruff
+          ruff check api/
+
+      - name: Run tests
+        working-directory: api
+        run: python -m pytest tests/ -v
+
+  docker-build:
+    name: Docker build check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build API image
+        run: docker build ./api -t clima-org-mvp-api:ci
+
+      - name: Build Dashboard image
+        run: docker build ./dashboard -t clima-org-mvp-dashboard:ci
