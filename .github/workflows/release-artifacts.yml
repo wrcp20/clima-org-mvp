@@ -31,7 +31,7 @@ jobs:
 
       - name: Extract metadata — API
         id: meta-api
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository }}/api
           tags: |
@@ -52,7 +52,7 @@ jobs:
 
       - name: Extract metadata — Dashboard
         id: meta-dashboard
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository }}/dashboard
           tags: |
