@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ survey.title }}</title>
+    <style>
+        body { font-family: sans-serif; max-width: 700px; margin: 40px auto; padding: 20px; line-height: 1.6; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        .block-title { font-size: 1.1em; font-weight: bold; color: #555; margin-top: 30px; margin-bottom: 10px; border-left: 4px solid #3498db; padding-left: 10px; }
+        .question { margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 6px; }
+        .question p { margin: 0 0 10px 0; font-weight: 500; }
+        .scale-labels { display: flex; justify-content: space-between; font-size: 0.8em; color: #888; margin-top: 5px; }
+        .radio-group { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+        .radio-option { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .radio-option label { font-size: 0.9em; }
+        button[type=submit] { margin-top: 30px; padding: 12px 30px; background: #3498db; color: white; border: none; border-radius: 5px; font-size: 1em; cursor: pointer; }
+        button[type=submit]:hover { background: #2980b9; }
+        .success { color: green; font-size: 1.1em; margin-top: 20px; display: none; }
+        .error { color: red; font-size: 0.9em; margin-top: 10px; display: none; }
+    </style>
+</head>
+<body>
+    <h1>{{ survey.title }}</h1>
+    <p>Por favor, respondé cada pregunta honestamente. Tus respuestas son confidenciales.</p>
+
+    <form id="survey-form">
+        {% set current_block = namespace(value="") %}
+        {% for q in questions %}
+            {% if q.block != current_block.value %}
+                {% set current_block.value = q.block %}
+                {% if q.block == "mbi" %}
+                    <div class="block-title">Bloque 1 — Bienestar laboral (0 = Nunca, 6 = Siempre)</div>
+                {% else %}
+                    <div class="block-title">Bloque 2 — Clima organizacional (1 = Muy en desacuerdo, 5 = Muy de acuerdo)</div>
+                {% endif %}
+            {% endif %}
+            <div class="question">
+                <p>{{ loop.index }}. {{ q.text }}</p>
+                <div class="radio-group">
+                    {% for val in range(q.scale_min, q.scale_max + 1) %}
+                    <div class="radio-option">
+                        <input type="radio" name="{{ q.id }}" value="{{ val }}" required>
+                        <label>{{ val }}</label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+
+        <button type="submit">Enviar respuestas</button>
+        <div class="success" id="success-msg">✓ Gracias por tu respuesta. Ha sido registrada correctamente.</div>
+        <div class="error" id="error-msg"></div>
+    </form>
+
+    <script>
+        document.getElementById('survey-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const answers = {};
+            for (let [key, val] of formData.entries()) {
+                answers[key] = parseInt(val);
+            }
+
+            try {
+                const resp = await fetch(window.location.pathname + '/respond?token={{ token }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ answers })
+                });
+
+                if (resp.ok) {
+                    form.style.display = 'none';
+                    document.getElementById('success-msg').style.display = 'block';
+                } else if (resp.status === 409) {
+                    document.getElementById('error-msg').textContent = 'Ya enviaste esta encuesta anteriormente.';
+                    document.getElementById('error-msg').style.display = 'block';
+                } else {
+                    const err = await resp.json();
+                    document.getElementById('error-msg').textContent = 'Error: ' + (err.detail || 'Inténtalo de nuevo.');
+                    document.getElementById('error-msg').style.display = 'block';
+                }
+            } catch (err) {
+                document.getElementById('error-msg').textContent = 'Error de conexión. Inténtalo de nuevo.';
+                document.getElementById('error-msg').style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
