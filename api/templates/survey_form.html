@@ -16,8 +16,19 @@
         .radio-option label { font-size: 0.9em; }
         button[type=submit] { margin-top: 30px; padding: 12px 30px; background: #3498db; color: white; border: none; border-radius: 5px; font-size: 1em; cursor: pointer; }
         button[type=submit]:hover { background: #2980b9; }
-        .success { color: green; font-size: 1.1em; margin-top: 20px; display: none; }
         .error { color: red; font-size: 0.9em; margin-top: 10px; display: none; }
+        #result-panel { display: none; margin-top: 30px; }
+        .result-title { font-size: 1.3em; font-weight: 700; color: #2c3e50; margin-bottom: 6px; }
+        .result-subtitle { color: #555; font-size: .9em; margin-bottom: 24px; }
+        .score-row { margin-bottom: 16px; }
+        .score-label { display: flex; justify-content: space-between; font-size: .88em; font-weight: 600; margin-bottom: 4px; color: #333; }
+        .score-bar-bg { background: #e9ecef; border-radius: 999px; height: 10px; }
+        .score-bar-fill { height: 10px; border-radius: 999px; transition: width .6s ease; }
+        .risk-badge { display: inline-block; padding: 6px 18px; border-radius: 999px; font-weight: 700; font-size: .95em; margin: 20px 0 8px; }
+        .risk-low    { background: #dcfce7; color: #16a34a; }
+        .risk-medium { background: #fef9c3; color: #ca8a04; }
+        .risk-high   { background: #fee2e2; color: #dc2626; }
+        .result-note { font-size: .8em; color: #888; border-top: 1px solid #e9ecef; padding-top: 12px; margin-top: 16px; }
         .progress-wrap { position: sticky; top: 0; background: #fff; padding: 12px 0 8px; z-index: 10; border-bottom: 1px solid #e9ecef; margin-bottom: 20px; }
         .progress-label { display: flex; justify-content: space-between; font-size: 0.85em; color: #555; margin-bottom: 6px; }
         .progress-bar-bg { background: #e9ecef; border-radius: 999px; height: 8px; }
@@ -63,9 +74,38 @@
         {% endfor %}
 
         <button type="submit">Enviar respuestas</button>
-        <div class="success" id="success-msg">✓ Gracias por tu respuesta. Ha sido registrada correctamente.</div>
         <div class="error" id="error-msg"></div>
     </form>
+
+    <div id="result-panel">
+        <div class="result-title">✓ Respuesta registrada</div>
+        <div class="result-subtitle">Tus resultados personales — solo vos podés ver esto.</div>
+
+        <div class="score-row">
+            <div class="score-label"><span>Agotamiento emocional</span><span id="val-exhaustion"></span></div>
+            <div class="score-bar-bg"><div class="score-bar-fill" id="bar-exhaustion"></div></div>
+        </div>
+        <div class="score-row">
+            <div class="score-label"><span>Despersonalización</span><span id="val-depersonalization"></span></div>
+            <div class="score-bar-bg"><div class="score-bar-fill" id="bar-depersonalization"></div></div>
+        </div>
+        <div class="score-row">
+            <div class="score-label"><span>Realización personal</span><span id="val-achievement"></span></div>
+            <div class="score-bar-bg"><div class="score-bar-fill" id="bar-achievement"></div></div>
+        </div>
+        <div class="score-row">
+            <div class="score-label"><span>Clima organizacional</span><span id="val-climate"></span></div>
+            <div class="score-bar-bg"><div class="score-bar-fill" id="bar-climate"></div></div>
+        </div>
+
+        <div id="risk-badge" class="risk-badge"></div>
+
+        <div class="result-note">
+            🔒 Estos resultados son solo orientativos. No se almacenan asociados a tu identidad
+            y no serán vistos de forma individual por nadie en la organización.
+            Solo se usan agregados por departamento.
+        </div>
+    </div>
 
     <script>
         const TOTAL = {{ questions|length }};
@@ -99,8 +139,36 @@
                 });
 
                 if (resp.ok) {
+                    const data = await resp.json();
                     form.style.display = 'none';
-                    document.getElementById('success-msg').style.display = 'block';
+
+                    function setBar(id, value, max, goodWhenHigh) {
+                        const pct = Math.round(value / max * 100);
+                        document.getElementById('bar-' + id).style.width = pct + '%';
+                        const r = pct / 100;
+                        const color = goodWhenHigh
+                            ? (r >= 0.6 ? '#16a34a' : r >= 0.35 ? '#ca8a04' : '#dc2626')
+                            : (r <= 0.4 ? '#16a34a' : r <= 0.65 ? '#ca8a04' : '#dc2626');
+                        document.getElementById('bar-' + id).style.background = color;
+                        document.getElementById('val-' + id).textContent = value + ' / ' + max;
+                    }
+
+                    setBar('exhaustion',       data.exhaustion_score,           54,  false);
+                    setBar('depersonalization', data.depersonalization_score,    30,  false);
+                    setBar('achievement',       data.personal_achievement_score, 48,  true);
+
+                    const climFill = document.getElementById('bar-climate');
+                    const climPct  = data.climate_score;
+                    climFill.style.width      = climPct + '%';
+                    climFill.style.background = climPct >= 60 ? '#16a34a' : climPct >= 35 ? '#ca8a04' : '#dc2626';
+                    document.getElementById('val-climate').textContent = climPct + '%';
+
+                    const badge  = document.getElementById('risk-badge');
+                    const labels = { low: 'Riesgo bajo', medium: 'Riesgo moderado', high: 'Riesgo alto' };
+                    badge.textContent = labels[data.risk_level] || data.risk_level;
+                    badge.className   = 'risk-badge risk-' + data.risk_level;
+
+                    document.getElementById('result-panel').style.display = 'block';
                 } else if (resp.status === 409) {
                     document.getElementById('error-msg').textContent = 'Ya enviaste esta encuesta anteriormente.';
                     document.getElementById('error-msg').style.display = 'block';
