@@ -1,12 +1,12 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session
 
 from database import get_session
-from models.models import Employee, Response, Score, Survey
+from models.models import Response, Score, Survey
 from schemas.schemas import SurveySubmitRequest, ScoreRead
 from services.scoring import calculate_scores
 from services.tokens import verify_token

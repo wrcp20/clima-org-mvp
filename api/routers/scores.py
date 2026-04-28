@@ -2,9 +2,9 @@ import csv
 import io
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
-from sqlmodel import Session, select, func
+from sqlmodel import Session, select
 
 from database import get_session
 from models.models import Score

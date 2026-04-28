@@ -1,9 +1,7 @@
-import pytest
 from services.scoring import (
     calculate_scores,
     EXHAUSTION_THRESHOLD,
     DEPERSONALIZATION_THRESHOLD,
-    ACHIEVEMENT_THRESHOLD,
 )
 
 

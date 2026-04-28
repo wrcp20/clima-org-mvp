@@ -1,5 +1,3 @@
-from constants import SURVEY_QUESTIONS
-
 # MBI-HSS validated high-burnout cutoffs
 # Exhaustion:       9 items × 6 = 54 max  → high ≥ 27
 # Depersonalization: 5 items × 6 = 30 max  → high ≥ 13
