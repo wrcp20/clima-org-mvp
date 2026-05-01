@@ -40,7 +40,7 @@ jobs:
             type=raw,value=latest
 
       - name: Build & push API
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./api
           platforms: linux/amd64,linux/arm64
@@ -61,7 +61,7 @@ jobs:
             type=raw,value=latest
 
       - name: Build & push Dashboard
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./dashboard
           platforms: linux/amd64,linux/arm64
